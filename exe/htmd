@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require "htmd"
+require "optparse"
+
+class NoInputError < RuntimeError
+  def initialize
+    super("no input: pass a file or pipe markdown on stdin")
+  end
+end
+
+def ensure_input!
+  if ARGV.empty? && $stdin.tty?
+    raise NoInputError
+  end
+end
+
+parser = OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Usage: htmd [file ...]
+
+    Convert markdown to HTML and open it in your browser.
+    With no file, reads markdown from standard input.
+
+  BANNER
+
+  opts.on_tail("-h", "--help", "Show this help") do
+    puts opts
+    exit
+  end
+
+  opts.on_tail("--version", "Show version") do
+    puts "htmd #{Htmd::VERSION}"
+    exit
+  end
+end
+
+begin
+  parser.parse!
+  ensure_input!
+  Htmd.run(ARGF)
+rescue OptionParser::ParseError, NoInputError, SystemCallError => e
+  warn "htmd: #{e}"
+  warn parser
+  exit 1
+end
